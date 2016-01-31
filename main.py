@@ -5,24 +5,54 @@ players = []
 mainWin = Tkinter.Tk()
 mainWin.wm_title("Game Name")
 mainWin.resizable(width=False, height=False)
-canvas = Tkinter.Canvas(mainWin, width=600, height=200, background="white")
+canvas = Tkinter.Canvas(mainWin, width=1200, height=600, background="white")
 
 class player:
-    def __init__(x, y, width, height,this, name, color):
+    def __init__(this, x, y, width, height, name, color):
         this.name = name
         this.x, this.y = x, y
         this.width, this.height = width, height
         this.color = color
         this.onGround = False
         this.velX, this.velY = 0,0
+        y2 = this.y + this.height
+        x2 = this.x + this.width
+        this.item = canvas.create_rectangle(this.x,this.y,x2,y2, fill=this.color)
     def update(self):
-        self.x = self.x + self.velX# += Decimals screw up
-        self.y = self.y + self.velY
         
-        col = testCollide(self)
+        self.x += self.velX
+        self.y += self.velY
+        self.velY += 0.1
         
-        self.x += col['x'] 
+        col = testCollide(self,arr=objects)
+        
+        self.x += col['x']
         self.y += col['y']
+        
+        
+        if col['y'] < 0:
+            self.velY = 0
+        y2 = self.y + self.height
+        x2 = self.x + self.width
+        
+        self.x = int(self.x*1000)/1000
+        self.y = int(self.y*1000)/1000
+        
+        canvas.coords(self.item,self.x, self.y,x2,y2)
+class object:
+    def __init__(this, x, y, width, height, color):
+        this.x, this.y = x, y
+        this.width, this.height = width, height
+        this.color = color
+        this.velX, this.velY = 0,0
+        y2 = this.y + this.height
+        x2 = this.x + this.width
+        this.item = canvas.create_rectangle(this.x,this.y,x2,y2, fill=this.color)
+        
+p1 = player(0,0,20,20,'sadfas','red')
+objects = []
+objects.append(object(0,int(canvas['height'])-20,int(canvas['width']),20,'#000000'))
+
 def testCollide(obj,arr=None,obj2=None):
     xchange = 0
     ychange = 0
@@ -49,14 +79,15 @@ def testCollide(obj,arr=None,obj2=None):
             
             if (betweenX and B_T2 and not(R_L2 or L_R2)):#Bottom Top Detection
                 ychange += B - T2
-            if (betweenX and T_B2 and not(R_L2 or L_R2)):#Top Bottom Detection
+            elif (betweenX and T_B2 and not(R_L2 or L_R2)):#Top Bottom Detection
                 ychange -= B2 - T;
         
-            if (betweenY and R_L2 and not(B_T2 or T_B2)):
+            elif (betweenY and R_L2 and not(B_T2 or T_B2)):
                 xchange += R - L2
-            if (betweenY and L_R2 and not(B_T2 or T_B2)):
+            elif (betweenY and L_R2 and not(B_T2 or T_B2)):
                 xchange += L - R2
-                    
+            if ((T-obj.velY < T2 and B-obj.velY > T2)):
+                ychange = T2 - B
     elif obj2 != None:
         L2 = obj2.x
         T2 = obj2.y
@@ -80,14 +111,13 @@ def testCollide(obj,arr=None,obj2=None):
             xchange += R - L2
         if (betweenY and L_R2 and not(B_T2 or T_B2)):
             xchange += L - R2
-    else:
-        return 2
     return {'x':xchange,'y':ychange}
 def updateWin():
-    x=0
-def main(ip='127.0.0.1',port=5200,name="Anon"):
-    players.append();
+    p1.update()    
     canvas.pack()
+    canvas.after(1,updateWin)
+def main(ip='127.0.0.1',port=5200,name="Anon"):
+    #players.append(); 
     updateWin()
     mainWin.mainloop()
 main()
