@@ -27,7 +27,7 @@ class Window(wx.Frame):
         self.statusbar = self.CreateStatusBar()
         self.statusbar.SetStatusText('0')
         self.board = Board(self)
-        self.SetBackgroundColour("#00F9FF")
+        self.SetBackgroundColour("#2A4152")#00F9FF
         self.Centre()
         self.Show(True)
 
@@ -62,6 +62,6 @@ app = wx.App()
 thingy = Window(None, -1, 'Client')
 w,h = thingy.GetSize()
 thingy.statusbar.SetStatusText(str(w))
-thingy.board.contents.append(Drawable(40,(h/2)-30,30,30,"#CD00FF", ["#BB00EE", 2]))
-thingy.board.contents.append(Drawable(w-40-30,(h/2)-30,30,30,"#44FF00", ["#22DD00", 2]))
+thingy.board.contents.append(Drawable(40,(h/2)-30,30,30,"#8F70FF", ["#DDDDDD", 2]))
+thingy.board.contents.append(Drawable(w-40-30,(h/2)-30,30,30,"#26FC14", ["#FFFFFF", 2]))
 app.MainLoop()
