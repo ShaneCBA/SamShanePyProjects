@@ -34,7 +34,7 @@ class Window(wx.Frame):
 class Board(wx.Panel):
     TIMER_ID = 42
     def __init__(self, parent):
-        wx.Panel.__init__(self, parent)
+        wx.Panel.__init__(self, parent, style=wx.WANTS_CHARS)
         
         self.timer = wx.Timer(self,  Board.TIMER_ID)
         self.timer.Start(500)
@@ -51,8 +51,15 @@ class Board(wx.Panel):
     def addObject(self, toAdd):
         self.contents.append(toAdd)
     def onChar(self, event):
-        keycode = event.GetUnicodeKey()
-        print keycode
+        keycode = event.GetKeyCode()
+        if keycode in [83,wx.WXK_DOWN]:
+            print "Down"
+        if keycode in [87,wx.WXK_UP]:
+            print "Up"
+        if keycode in [65,wx.WXK_LEFT]:
+            print "Left"
+        if keycode in [68,wx.WXK_RIGHT]:
+            print "Right"
     def drawObjects(self, event):
         dc = wx.PaintDC(self)
         filtered = filter(lambda x: hasattr(x, "color"), self.contents)
