@@ -43,11 +43,16 @@ class Board(wx.Panel):
        # wx.Panel.__init__(self, parent, style=wx.WANTS_CHARS)
         self.contents = []
         self.Bind(wx.EVT_PAINT, self.drawObjects)
+        
+        self.Bind(wx.EVT_KEY_DOWN , self.onChar)
     def onTimer(self, event):
         #print "1"
         nope=1
     def addObject(self, toAdd):
         self.contents.append(toAdd)
+    def onChar(self, event):
+        keycode = event.GetUnicodeKey()
+        print keycode
     def drawObjects(self, event):
         dc = wx.PaintDC(self)
         filtered = filter(lambda x: hasattr(x, "color"), self.contents)
