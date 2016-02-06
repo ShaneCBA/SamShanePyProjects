@@ -21,7 +21,11 @@ class Drawable(GameObject):
         dc.SetPen(pen)#.SetJoin(wx.JOIN_MITER))
         dc.SetBrush(wx.Brush(self.color, wx.SOLID))
         dc.DrawRectangle(self.coords[0][0]+self.border[1], self.coords[0][1]+self.border[1], self.dimensions[0], self.dimensions[1])
-        
+        """print self.color
+        print self.coords
+        print self.dimensions
+        print ''
+        print ''"""
 class Window(wx.Frame):
     def __init__(self, parent, id, title):
         wx.Frame.__init__(self, parent, id, title, size=(1200, 600),  style=wx.DEFAULT_FRAME_STYLE ^ wx.RESIZE_BORDER)
@@ -49,6 +53,7 @@ class Board(wx.Panel):
         self.player = self.addObject(Moveable(10, 10, 10, 10, 'red'))  
     def onTimer(self, event):
         self.GetEventHandler().ProcessEvent(wx.PaintEvent( ))
+        thingy.Refresh
     def addObject(self, toAdd):
         self.contents.append(toAdd)  
         return self.contents[-1]
@@ -69,6 +74,7 @@ class Board(wx.Panel):
             print "Right"'''
     def drawObjects(self, event):
         dc = wx.PaintDC(self)
+        
         filtered = filter(lambda x: hasattr(x, "color"), self.contents)
         for o in range(len(filtered)):
             filtered[o].draw(dc)
@@ -76,13 +82,14 @@ class Board(wx.Panel):
 class Moveable(Drawable):
     def __init__(self, x, y, width, height, color, borderColor = None, borderWidth = 2):
         super(Moveable, self).__init__(x, y, width, height, color, [borderColor if borderColor else color, borderWidth])
-        self.velocity = [0, 0]
+        self.velocity = [1, 0]
     def move(self, move):
         #self.coords = map(sum, zip(move * 2, self.coords))
         x,y = self.coords[0]
         x2,y2 = self.coords[1]
         self.coords=[[x+move[0],y+move[1]],[x2+move[0],y2+move[1]]]
-        print x
+        print self.color
+        #print self.coords[0]
         return 0
 class Obstacle(Drawable):
     def __init__(self, x, y, width, height, color):
