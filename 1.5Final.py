@@ -11,17 +11,10 @@ class GameObject(object):
         return False
         
 class Drawable(GameObject):
-<<<<<<< HEAD
     def __init__(self, x, y, width, height, color, border):
         super(Drawable, self).__init__(x, y, width, height)
         self.color = color
         self.border = border #[color, width] *Temporary
-=======
-    def __init__(self, x, y, width, height, color, border = ["#000000", 2]):
-        super(Drawable, self).__init__(x, y, width, height)
-        self.color = color
-        self.border = border#[color, width] *Temporary
->>>>>>> f1a51b4d7373046904ced267b7b9d53713127fd9
     def draw(self, dc):
         pen = wx.Pen(self.border[0], self.border[1], wx.SOLID)
         #print pen.GetJoin()
@@ -45,7 +38,7 @@ class Board(wx.Panel):
         wx.Panel.__init__(self, parent, style=wx.WANTS_CHARS)
         
         self.timer = wx.Timer(self,  Board.TIMER_ID)
-        self.timer.Start(500)
+        self.timer.Start(10)
         self.Bind(wx.EVT_TIMER, self.onTimer, id=Board.TIMER_ID)
         
        # wx.Panel.__init__(self, parent, style=wx.WANTS_CHARS)
@@ -53,20 +46,11 @@ class Board(wx.Panel):
         self.Bind(wx.EVT_PAINT, self.drawObjects)
         
         self.Bind(wx.EVT_KEY_DOWN , self.onChar)
-<<<<<<< HEAD
-=======
-        self.player = self.addObject(Moveable(10, 10, 10, 10, 'red'))
->>>>>>> f1a51b4d7373046904ced267b7b9d53713127fd9
+        self.player = self.addObject(Moveable(10, 10, 10, 10, 'red'))  
     def onTimer(self, event):
-        #print "1"
-        nope=1
+        self.GetEventHandler().ProcessEvent(wx.PaintEvent( ))
     def addObject(self, toAdd):
-        self.contents.append(toAdd)
-<<<<<<< HEAD
-    def onChar(self, event):
-        keycode = event.GetKeyCode()
-        if keycode in [83,wx.WXK_DOWN]:
-=======
+        self.contents.append(toAdd)  
         return self.contents[-1]
     def onChar(self, event):
         keycode = event.GetKeyCode()
@@ -74,34 +58,32 @@ class Board(wx.Panel):
                           ,87: (5, 0)
                           ,65: (0, -5)
                           ,68: (0, 5)}[keycode])
-        if keycode in [83,wx.WXK_DOWN]:
-            self.player.move(5, 0)
->>>>>>> f1a51b4d7373046904ced267b7b9d53713127fd9
+        '''if keycode in [83,wx.WXK_DOWN]:
+#            self.player.move((5, 0))
             print "Down"
         if keycode in [87,wx.WXK_UP]:
             print "Up"
         if keycode in [65,wx.WXK_LEFT]:
             print "Left"
         if keycode in [68,wx.WXK_RIGHT]:
-            print "Right"
+            print "Right"'''
     def drawObjects(self, event):
         dc = wx.PaintDC(self)
         filtered = filter(lambda x: hasattr(x, "color"), self.contents)
         for o in range(len(filtered)):
             filtered[o].draw(dc)
-<<<<<<< HEAD
-=======
-
 
 class Moveable(Drawable):
     def __init__(self, x, y, width, height, color, borderColor = None, borderWidth = 2):
         super(Moveable, self).__init__(x, y, width, height, color, [borderColor if borderColor else color, borderWidth])
         self.velocity = [0, 0]
     def move(self, move):
-        self.coords = map(sum, zip(move * 2, self.coords))
-
-
->>>>>>> f1a51b4d7373046904ced267b7b9d53713127fd9
+        #self.coords = map(sum, zip(move * 2, self.coords))
+        x,y = self.coords[0]
+        x2,y2 = self.coords[1]
+        self.coords=[[x+move[0],y+move[1]],[x2+move[0],y2+move[1]]]
+        print x
+        return 0
 class Obstacle(Drawable):
     def __init__(self, x, y, width, height, color):
         super(Obstacle, self).__init__(x, y, width, height, color, [color, 2])
