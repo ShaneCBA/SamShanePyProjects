@@ -1,5 +1,6 @@
 import wx
 import time
+
 global keys
 keys = {83:False,87:False,65:False,68:False}
 class GameObject(object):
@@ -20,6 +21,7 @@ class Drawable(GameObject):
         pen = wx.Pen(self.border[0], self.border[1], wx.SOLID)
         dc.SetPen(pen)#.SetJoin(wx.JOIN_MITER))
         dc.SetBrush(wx.Brush(self.color, wx.SOLID))
+        
         dc.DrawRectangle(self.coords[0][0]+self.border[1], self.coords[0][1]+self.border[1], self.dimensions[0], self.dimensions[1])
 class Window(wx.Frame):
     def __init__(self, parent, id, title):
@@ -37,7 +39,7 @@ class Board(wx.Panel):
         wx.Panel.__init__(self, parent, style=wx.WANTS_CHARS)
         
         self.timer = wx.Timer(self,  Board.TIMER_ID)
-        self.timer.Start(25)
+        self.timer.Start(10)
         self.Bind(wx.EVT_TIMER, self.onTimer, id=Board.TIMER_ID)
         
        # wx.Panel.__init__(self, parent, style=wx.WANTS_CHARS)
@@ -52,7 +54,6 @@ class Board(wx.Panel):
     def onTimer(self, event):
         self.GetEventHandler().ProcessEvent(wx.PaintEvent( ))
         self.player.move()
-        self.Refresh()
     def addObject(self, toAdd):
         self.contents.append(toAdd)  
         return self.contents[-1]
@@ -62,7 +63,22 @@ class Board(wx.Panel):
     
     def keyUp(self,event):
         keys[event.GetKeyCode()] = False
-        
+    def onChar(self, event):
+        """print keys
+        keycode = event.GetKeyCode()
+        self.player.move({ 83: (0, 5)
+                          ,87: (0, -5)
+                          ,65: (-5, 0)
+                          ,68: (5, 0)}[keycode])"""
+        '''if keycode in [83,wx.WXK_DOWN]:
+#            self.player.move((5, 0))
+            print "Down"
+        if keycode in [87,wx.WXK_UP]:
+            print "Up"
+        if keycode in [65,wx.WXK_LEFT]:
+            print "Left"
+        if keycode in [68,wx.WXK_RIGHT]:
+            print "Right"'''
     def drawObjects(self, event):
         dc = wx.PaintDC(self)
         dc.Clear()
@@ -102,11 +118,12 @@ class Moveable(Drawable):
         
         x,y = self.coords[0]
         x2,y2 = self.coords[1]
-        
         self.coords[0][0] = self.coords[0][0] + self.velocity[0]
         self.coords[0][1] = self.coords[0][1] + self.velocity[1]
         self.coords[1][0] = self.coords[1][0] + self.velocity[0]
         self.coords[1][1] = self.coords[1][1] + self.velocity[1]
+        
+        print self.coords[0]
         return 0
 class Obstacle(Drawable):
     def __init__(self, x, y, width, height, color):
