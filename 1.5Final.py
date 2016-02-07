@@ -35,7 +35,7 @@ class GameObject(object):
 class PhysicalObject(GameObject):
     def __init__(self, x, y, width, height, collide = True, mode = CLIENT_SHARED):
         super(PhysicalObject, self).__init__(mode)
-        self.coords, self.dimensions, self.collide = [x, y, x + width, y + height], [width, height], collide
+        self.coords, self.dimensions, self.collide = [x, y], [width, height], collide
     def isTouching(self, compareTo):
         if self == compareTo:
             return False
@@ -168,9 +168,12 @@ class Rocket(Moveable):
     def move(self, toCheck=None):
         if toCheck == None:
             toCheck = obstacles
+        print self.coords
         #self.coords = map(sum, zip(self.coords, map(mul, zip(fireDirections[self.direction], [velocityCurve(4)] * 2))))
         self.coords[0] += self.velocity[0]
         self.coords[1] += self.velocity[1]
+        print self.coords
+        print ''
         if toCheck:
             for o in toCheck:
                 if self.isTouching(o):

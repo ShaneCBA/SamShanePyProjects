@@ -128,7 +128,7 @@ class Moveable(Drawable):
         oldCoords = self.coords[:]
         self.coords = map(sum, zip(self.coords, self.velocity * 2))
         if toCheck:
-            for o in toCheck:
+            for o in toCheck: 
                 if self.isTouching(o):
                     self.velocity = map(lambda x: copysign(1, -x), self.velocity)
                     self.coords = oldCoords[:]
