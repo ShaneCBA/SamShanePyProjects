@@ -110,10 +110,12 @@ class Board(wx.Panel):
         if event.GetKeyCode() in keys:
             keys[event.GetKeyCode()][0] = False
     def drawObjects(self, event):
-        dc = wx.PaintDC(self)
+        dc = wx.BufferedPaintDC(self)
+        dc.SetBackground(wx.Brush("#2A4152", wx.SOLID))
         dc.Clear()
         for o in filterByAttribute("color", self.contents):
             o.draw(dc)
+        dc.Refresh()
     def moveObjects(self):
         for o in filterByAttribute("velocity", self.contents):
             o.move(filterByAttribute("collide", self.contents))
@@ -141,13 +143,14 @@ class Obstacle(Drawable):
 
 
 class Rocket(Moveable):
-    def __init__(self, x, y, direction, mode = CLIENT_SHARED):
-        super(Moveable, self).__init__(x, y, 3, 3, 'red', mode = mode)
+    mode = CLIENT_SHARED
+    def __init__(self, x, y, direction):
+        super(Moveable, self).__init__(x, y, 3, 3, 'red', mode = Rocket.mode)
         self.direction = direction
     def move(self, toCheck):
-        self.coords = map(sum, zip(self.coords, map(mul, zip(fireDirections[direction], [velocityCurve(4)] * 2))))
+        self.coords = map(sum, zip(self.coords, map(mul, zip(fireDirections[self.direction], [velocityCurve(4)] * 2))))
         if toCheck:
-            for o in toCheck:
+            for o in range(len(toCheck)):
                 if self.isTouching(o):
                     self.kill()
                     break
