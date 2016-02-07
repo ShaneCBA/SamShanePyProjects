@@ -14,6 +14,12 @@ TICKRATE = 17
 CLIENT_LOCAL = 0
 CLIENT_SHARED = 1
 SERVER = 2
+fireCodes = {wx.WXK_LEFT: 1,
+             wx.WXK_RIGHT: 0,
+             wx.WXK_UP: 2,
+             wx.WXK_DOWN: 3}
+fireDirections = [[1, 0], [-1, 0], [0, 1], [0, -1]]
+
 velocityCurve = lambda x: copysign(min((4*x/17)**2, 7),x)
 filterByAttribute = lambda x, a: filter(lambda z: hasattr(z, x), a)
 def converge(f, t, s):
@@ -31,6 +37,9 @@ deAccel = partial(converge, t = 0, s = FRICTION)
 class GameObject(object):
     def __init__(self, mode):
         self.mode = mode
+        self.die = True
+    def kill(self):
+        self.die = False
 
 class PhysicalObject(GameObject):
     def __init__(self, x, y, width, height, collide = True, mode = CLIENT_SHARED):
@@ -39,8 +48,7 @@ class PhysicalObject(GameObject):
     def isTouching(self, compareTo):
         if self == compareTo:
             return False
-        for c in [0, 1]:
-            return self.coords[0] < compareTo.coords[0] + compareTo.dimensions[0] and self.coords[0] + self.dimensions[0] > compareTo.coords[0] and self.coords[1] < compareTo.coords[1] + compareTo.dimensions[1] and self.coords[1] + self.dimensions[1] > compareTo.coords[1]
+        return self.coords[0] < compareTo.coords[2] and self.coords[2] > compareTo.coords[0] and self.coords[1] < compareTo.coords[3] and self.coords[3] > compareTo.coords[1]
         
 class Drawable(PhysicalObject):
     def __init__(self, x, y, width, height, color, border, collide = True, mode = CLIENT_SHARED):
@@ -80,6 +88,8 @@ class Board(wx.Panel):
         
         self.player = self.addObject(Moveable(10, 10, 10, 10, 'red'))  
     def onTimer(self, event):
+        for o in filter(lambda x: x.die, self.contents):
+            o.kill()
         self.GetEventHandler().ProcessEvent(wx.PaintEvent( ))
         for k in keys: 
             if keys[k][0]:
@@ -92,10 +102,13 @@ class Board(wx.Panel):
         return self.contents[-1]
     
     def keyDown(self,event):
-        keys[event.GetKeyCode()][0] = True
-    
+        if event.GetKeyCode() in keys:
+            keys[event.GetKeyCode()][0] = True
+        if event.GetKeyCode() in fireCodes:
+            self.addObject(Rocket(self.player.coords[0] + self.player.dimensions[0] / 2, self.player.coords[1] + self.player.dimensions[1] / 2, fireCodes[event.GetKeyCode()], CLIENT_SHARED))
     def keyUp(self,event):
-        keys[event.GetKeyCode()][0] = False
+        if event.GetKeyCode() in keys:
+            keys[event.GetKeyCode()][0] = False
     def drawObjects(self, event):
         dc = wx.PaintDC(self)
         dc.Clear()
@@ -105,21 +118,18 @@ class Board(wx.Panel):
         for o in filterByAttribute("velocity", self.contents):
             o.move(filterByAttribute("collide", self.contents))
 class Moveable(Drawable):
-    def __init__(self, x, y, width, height, color, borderColor = None, borderWidth = 2):
-        super(Moveable, self).__init__(x, y, width, height, color, [borderColor if borderColor else color, borderWidth])
+    def __init__(self, x, y, width, height, color, borderColor = None, borderWidth = 2, mode = CLIENT_SHARED):
+        super(Moveable, self).__init__(x, y, width, height, color, [borderColor if borderColor else color, borderWidth], mode)
         self.velocity = [0, 0]
     def move(self, toCheck):
         self.updateVelocity()
-        print self.velocity
-        print self.coords
-        self.coords = map(sum, zip(self.coords, self.velocity))
+        oldCoords = self.coords[:]
+        self.coords = map(sum, zip(self.coords, self.velocity * 2))
         if toCheck:
             for o in toCheck:
                 if self.isTouching(o):
-                    print self.velocity
-                    self.velocity = map(lambda x: copysign(abs(x) * 2 + 2, x), self.velocity)
-                    print self.velocity
-                    self.move(toCheck)
+                    self.velocity = map(lambda x: copysign(1, -x), self.velocity)
+                    self.coords = oldCoords[:]
                     break
         return
     def updateVelocity(self):
@@ -130,6 +140,17 @@ class Obstacle(Drawable):
         super(Obstacle, self).__init__(x, y, width, height, color, border if border else [color, 2])
 
 
+class Rocket(Moveable):
+    def __init__(self, x, y, direction, mode = CLIENT_SHARED):
+        super(Moveable, self).__init__(x, y, 3, 3, 'red', mode = mode)
+        self.direction = direction
+    def move(self, toCheck):
+        self.coords = map(sum, zip(self.coords, map(mul, zip(fireDirections[direction], [velocityCurve(4)] * 2))))
+        if toCheck:
+            for o in toCheck:
+                if self.isTouching(o):
+                    self.kill()
+                    break
 app = wx.App()
 thingy = Window(None, -1, 'Client', WIDTH, HEIGHT)
 w,h = thingy.GetSize()
