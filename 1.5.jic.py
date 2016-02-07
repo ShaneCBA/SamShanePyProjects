@@ -1,23 +1,32 @@
 import wx
 import time
+from math import copysign
+from operator import mul
+from functools import partial
 WIDTH, HEIGHT = 1200, 600
 global keys
 keys = {83: [False, 0],
         87: [False, 0],
         65: [False, 0],
         68: [False, 0]}
+FRICTION = 1
 TICKRATE = 17
 CLIENT_LOCAL = 0
 CLIENT_SHARED = 1
 SERVER = 2
-velocityCurve = lambda x: min((4*x/9)**2, 7)
+velocityCurve = lambda x: copysign(min((4*x/17)**2, 7),x)
 filterByAttribute = lambda x, a: filter(lambda z: hasattr(z, x), a)
 def converge(f, t, s):
-    if f < s:
-        return f+s if f+s < s else s
-    elif f > s:
-        return f-s if f-s > s else s
-    return s
+    if f < t:
+        return f+s if f+s < t else t
+    elif f > t:
+        return f-s if f-s > t else t
+    return t
+def diverge(f, a, s):
+    if f < t:
+        return f - s
+    return f + s
+deAccel = partial(converge, t = 0, s = FRICTION)
 
 class GameObject(object):
     def __init__(self, mode):
@@ -26,12 +35,12 @@ class GameObject(object):
 class PhysicalObject(GameObject):
     def __init__(self, x, y, width, height, collide = True, mode = CLIENT_SHARED):
         super(PhysicalObject, self).__init__(mode)
-        self.coords, self.dimensions, self.collide = [[x, y], [x + width, y + height]], [width, height], collide
-    def isTouching(self, compareTo): 
+        self.coords, self.dimensions, self.collide = [x, y, x + width, y + height], [width, height], collide
+    def isTouching(self, compareTo):
+        if self == compareTo:
+            return False
         for c in [0, 1]:
-            if compareTo.coords[0][0] < self.coords[c][0] < compareTo.coords[1][0] and compareTo.coords[0][1] < self.coords[c][1] < compareTo.coords[1][1]:
-                    return True
-        return False
+            return self.coords[0] < compareTo.coords[0] + compareTo.dimensions[0] and self.coords[0] + self.dimensions[0] > compareTo.coords[0] and self.coords[1] < compareTo.coords[1] + compareTo.dimensions[1] and self.coords[1] + self.dimensions[1] > compareTo.coords[1]
         
 class Drawable(PhysicalObject):
     def __init__(self, x, y, width, height, color, border, collide = True, mode = CLIENT_SHARED):
@@ -42,8 +51,7 @@ class Drawable(PhysicalObject):
         pen = wx.Pen(self.border[0], self.border[1], wx.SOLID)
         dc.SetPen(pen)#.SetJoin(wx.JOIN_MITER))
         dc.SetBrush(wx.Brush(self.color, wx.SOLID))
-        
-        dc.DrawRectangle(self.coords[0][0]+self.border[1], self.coords[0][1]+self.border[1], self.dimensions[0], self.dimensions[1])
+        dc.DrawRectangle(self.coords[0]+self.border[1], self.coords[1]+self.border[1], self.dimensions[0], self.dimensions[1])
 class Window(wx.Frame):
     def __init__(self, parent, id, title, x, y):
         wx.Frame.__init__(self, parent, id, title, size=(x, y),  style=wx.DEFAULT_FRAME_STYLE ^ wx.RESIZE_BORDER)
@@ -73,11 +81,12 @@ class Board(wx.Panel):
         self.player = self.addObject(Moveable(10, 10, 10, 10, 'red'))  
     def onTimer(self, event):
         self.GetEventHandler().ProcessEvent(wx.PaintEvent( ))
-        for k in keys.values(): 
-            if k[0]:
-                k[1] = velocityCurve(k[1])
+        for k in keys: 
+            if keys[k][0]:
+                keys[k][1] += 1
             else:
-                k[1] = converge(k[1], 0, 1)
+                keys[k][1] = 0
+        self.moveObjects()
     def addObject(self, toAdd):
         self.contents.append(toAdd)  
         return self.contents[-1]
@@ -94,29 +103,37 @@ class Board(wx.Panel):
             o.draw(dc)
     def moveObjects(self):
         for o in filterByAttribute("velocity", self.contents):
-            o.move((lambda x: x.collide == True)(filterByAttribute("coords", self.contents)))
+            o.move(filterByAttribute("collide", self.contents))
 class Moveable(Drawable):
     def __init__(self, x, y, width, height, color, borderColor = None, borderWidth = 2):
         super(Moveable, self).__init__(x, y, width, height, color, [borderColor if borderColor else color, borderWidth])
-        self.velocity = [1, 0]
+        self.velocity = [0, 0]
     def move(self, toCheck):
-        oldCoords = self.coords
-        self.coords = map(sum, zip(self.coords, self.velocity * 2))
-        for o in toCheck:
-            if self.IsTouching(o):
-                self.coords = oldCoords
-                break
+        self.updateVelocity()
+        print self.velocity
+        print self.coords
+        self.coords = map(sum, zip(self.coords, self.velocity))
+        if toCheck:
+            for o in toCheck:
+                if self.isTouching(o):
+                    print self.velocity
+                    self.velocity = map(lambda x: copysign(abs(x) * 2 + 2, x), self.velocity)
+                    print self.velocity
+                    self.move(toCheck)
+                    break
         return
+    def updateVelocity(self):
+        self.velocity[0] = velocityCurve(keys[68][1] - keys[65][1]) if keys[68][0] or keys[65][0] else deAccel(self.velocity[0])
+        self.velocity[1] = velocityCurve(keys[83][1] - keys[87][1]) if keys[83][0] or keys[87][0] else deAccel(self.velocity[1])
 class Obstacle(Drawable):
-    def __init__(self, x, y, width, height, color, ):
-        super(Obstacle, self).__init__(x, y, width, height, color, [color, 2])
+    def __init__(self, x, y, width, height, color, border = None):
+        super(Obstacle, self).__init__(x, y, width, height, color, border if border else [color, 2])
 
 
 app = wx.App()
 thingy = Window(None, -1, 'Client', WIDTH, HEIGHT)
 w,h = thingy.GetSize()
-print w, h
 thingy.statusbar.SetStatusText(str(w))
-thingy.board.contents.append(Drawable(40,(h/2)-30,30,30,"#8F70FF", ["#DDDDDD", 2]))
-thingy.board.contents.append(Drawable(w-40-30,(h/2)-30,30,30,"#26FC14", ["#FFFFFF", 2]))
+thingy.board.addObject(Obstacle(40,(h/2)-30,30,30,"#8F70FF", ["#DDDDDD", 2]))
+thingy.board.addObject(Obstacle(w-40-30,(h/2)-30,30,30,"#26FC14", ["#FFFFFF", 2]))
 app.MainLoop()
