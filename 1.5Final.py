@@ -1,5 +1,9 @@
 import wx
 import time
+from math import copysign
+from operator import mul
+from functools import partial
+WIDTH, HEIGHT = 1250, 600
 global keys
 keys = {83:False,87:False,65:False,68:False}
 class GameObject(object):
