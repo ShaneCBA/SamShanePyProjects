@@ -110,15 +110,15 @@ class Moveable(Drawable):
         self.velocity = [0, 0]
     def move(self, toCheck):
         self.updateVelocity()
-        #print self.velocity
-        #print self.coords
+        print self.velocity
+        print self.coords
         self.coords = map(sum, zip(self.coords, self.velocity))
         if toCheck:
             for o in toCheck:
                 if self.isTouching(o):
-                    #print self.velocity
+                    print self.velocity
                     self.velocity = map(lambda x: copysign(abs(x) * 2 + 2, x), self.velocity)
-                    #print self.velocity
+                    print self.velocity
                     self.move(toCheck)
                     break
         return
