@@ -113,8 +113,7 @@ class Board(wx.Panel):
         if event.GetKeyCode() in keys:
             keys[event.GetKeyCode()][0] = False
     def drawObjects(self, event):
-        dc = wx.BufferedPaintDC(self)
-        dc.SetBackground(wx.Brush("#2A4152", wx.SOLID))
+        dc = wx.PaintDC(self)
         dc.Clear()
         for o in filterByAttribute("color", self.contents):
             o.draw(dc)
@@ -153,11 +152,12 @@ class Rocket(Moveable):
         self.alive += 1
         if self.alive > 180:
             self.kill()
-        self.coords = map(sum, zip(self.coords, map(lambda x: apply(mul, x), zip(fireDirections[self.direction], [9] * 2)) * 2))
+        self.coords = map(sum, zip(self.coords, map(lambda x: apply(mul, x), zip(fireDirections[self.direction], [8, 8])) * 2))
         if toCheck:
             for o in toCheck:
                 if o != player and self.isTouching(o):
                     self.kill()
+                    print "k"
                     break
 app = wx.App()
 thingy = Window(None, -1, 'Client', WIDTH, HEIGHT)
