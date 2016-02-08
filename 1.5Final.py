@@ -3,8 +3,14 @@ import time
 from math import copysign
 from operator import mul
 from functools import partial
+import socket
+import cPickle
 
 WIDTH, HEIGHT = 1205, 650
+
+IP = '127.0.0.1'
+TCP_PORT = 5000
+BUFFER_SIZE = 99999
 
 keys = {83:False,
         87:False,
@@ -42,7 +48,7 @@ class PhysicalObject(GameObject):
         for c in [0, 1]:
             return self.coords[0] < compareTo.coords[0] + compareTo.dimensions[0] and self.coords[0] + self.dimensions[0] > compareTo.coords[0] and self.coords[1] < compareTo.coords[1] + compareTo.dimensions[1] and self.coords[1] + self.dimensions[1] > compareTo.coords[1]
 class Drawable(PhysicalObject):
-    def __init__(self, x, y, width, height, color, border):
+    def __init__(self, x, y, width, height, color, border, mode=CLIENT_SHARED):
         super(Drawable, self).__init__(x, y, width, height)
         self.color = color
         self.border = border #[color, width] *Temporary
@@ -83,8 +89,19 @@ class Board(wx.Panel):
         self.Refresh()
     def onTimer(self, event):
         self.GetEventHandler().ProcessEvent(wx.PaintEvent( ))
-        self.player.move()
         self.moveObjects()
+        #sends {name:"name","player": playeraobject, "bullets": (tuple, of, bullets)}
+        #recieves {"players":{},"bullets":{}, "score":{}}
+        '''s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect((IP, TCP_PORT))'''
+        
+        message={'name':self.player.name,'player':{self.player}}
+        message = cPickle.dumps(message)
+        print message
+        '''s.send(message)
+        s.close()
+        sData = cPickle.loads(s.recv(BUFFER_SIZE))'''
+        #print sData
     def addObject(self, toAdd):
         self.contents.append(toAdd)  
         return self.contents[-1]
@@ -111,15 +128,18 @@ class Board(wx.Panel):
             o.draw(dc)
         dc.Refresh()
     def moveObjects(self):
+        if(keys[87]):self.player.velocity[1] = -10#UP
+        if(keys[83]):self.player.velocity[1] = 10#DOWN
+        if(keys[65]):self.player.velocity[0] = -10#LEFT
+        if(keys[68]):self.player.velocity[0] = 10#RIGHT
         for o in filterByAttribute("velocity", self.contents):
             o.move(filterByAttribute("collide", self.contents))
 class Moveable(Drawable):
-    def __init__(self, x, y, width, height, color, borderColor = "#FFFFFF", borderWidth = 2):
-        super(Moveable, self).__init__(x, y, width, height, color, [borderColor if borderColor else color, borderWidth])
+    def __init__(self, x, y, width, height, color, borderColor = "#FFFFFF", borderWidth = 2, mode=CLIENT_SHARED):
+        super(Moveable, self).__init__(x, y, width, height, color,[borderColor if borderColor else color, borderWidth], mode=CLIENT_SHARED)
         self.velocity = [0, 0]
     def move(self,toCheck=None):
-        #self.coords = map(sum, zip(move * 2, self.coords))   
-        oldPos = self.coords  [:]              
+        #self.coords = map(sum, zip(move * 2, self.coords))           
         if toCheck == None:
             toCheck = obstacles
         velX = self.velocity[0]
@@ -130,10 +150,10 @@ class Moveable(Drawable):
         if (velY > 0):self.velocity[1] -=1
         if (velY < 0):self.velocity[1] +=1
             
-        if(keys[87]):self.velocity[1] = -10#UP
+        '''if(keys[87]):self.velocity[1] = -10#UP
         if(keys[83]):self.velocity[1] = 10#DOWN
         if(keys[65]):self.velocity[0] = -10#LEFT
-        if(keys[68]):self.velocity[0] = 10#RIGHT
+        if(keys[68]):self.velocity[0] = 10#RIGHT'''
         
         self.coords[0] = self.coords[0] + self.velocity[0]
         self.coords[1] = self.coords[1] + self.velocity[1]
@@ -141,10 +161,10 @@ class Moveable(Drawable):
         for o in range(len(obstacles)):
             if self.isTouching(obstacles[o]):
                 obj = obstacles[o]
-                x1 = (self.coords[0] < obj.coords[0]) and ((self.coords[0]+self.dimensions[0]) > obj.coords[0])
+                '''x1 = (self.coords[0] < obj.coords[0]) and ((self.coords[0]+self.dimensions[0]) > obj.coords[0])
                 x2 = (self.coords[0] < (obj.coords[0] + obj.dimensions[0])) and ((self.coords[0]+self.dimensions[0]) > (obj.coords[0] + obj.dimensions[0]))
                 y1 = (self.coords[1] < obj.coords[1]) and ((self.coords[1]+self.dimensions[1]) > obj.coords[1])
-                y2 = (self.coords[1] < (obj.coords[1] + obj.dimensions[1])) and ((self.coords[1]+self.dimensions[1]) > (obj.coords[1] + obj.dimensions[1]))
+                y2 = (self.coords[1] < (obj.coords[1] + obj.dimensions[1])) and ((self.coords[1]+self.dimensions[1]) > (obj.coords[1] + obj.dimensions[1]))'''
                 while (self.coords[1] < obj.coords[1]) and ((self.coords[1]+self.dimensions[1]) > obj.coords[1]):# |;
                     self.coords[1] -= 1
                 while (self.coords[1] < (obj.coords[1] + obj.dimensions[1])) and ((self.coords[1]+self.dimensions[1]) > (obj.coords[1] + obj.dimensions[1])):# ;|
@@ -156,7 +176,7 @@ class Moveable(Drawable):
         return 0
 class Obstacle(Drawable):
     def __init__(self, x, y, width, height, color, borderColor="#EEEEEE", borderWidth=2):
-        super(Obstacle, self).__init__(x, y, width, height, color, [borderColor, borderWidth])
+        super(Obstacle, self).__init__(x, y, width, height, color, border=[borderColor, borderWidth])
 class Rocket(Moveable):
     mode = CLIENT_SHARED
     def __init__(self,x,y,color,direction):
@@ -172,22 +192,24 @@ class Rocket(Moveable):
         #self.coords = map(sum, zip(self.coords, map(mul, zip(fireDirections[self.direction], [velocityCurve(4)] * 2))))
         self.coords[0] += self.velocity[0]
         self.coords[1] += self.velocity[1]
-        print self.coords
-        print ''
         if toCheck:
             for o in toCheck:
                 if self.isTouching(o):
-                    print 'eh'
                     self.kill()
                     break
 app = wx.App(redirect=False)
-thingy = Window(None, -1, 'Client', WIDTH, HEIGHT)
+appWindow = Window(None, -1, 'Client', WIDTH, HEIGHT)
 
 obstacles=[]
+appWindow.board.player.name = raw_input( "What is your name: " )
+if appWindow.board.player.name == "":
+    appWindow.board.player.name = "Player"
+IP = raw_input( "What the server's ip: " )
+if IP == "":
+    IP = "127.0.0.1"
+appWindow.statusbar.SetStatusText(str(WIDTH))
 
-thingy.statusbar.SetStatusText(str(WIDTH))
-
-obstacles.append(thingy.board.addObject(Obstacle(60,180,20,240,"#A13437")))
-obstacles.append(thingy.board.addObject(Obstacle(1120,180,20,240,"#238C6F")))
-thingy.board.addObject(Moveable(1166,0,30,30,"#35D4A8"))
+obstacles.append(appWindow.board.addObject(Obstacle(60,180,20,240,color="#A13437")))
+obstacles.append(appWindow.board.addObject(Obstacle(1120,180,20,240,color="#238C6F")))
+appWindow.board.addObject(Moveable(1166,0,30,30,"#35D4A8"))
 app.MainLoop()

@@ -11,11 +11,7 @@ BUFFER_SIZE = 1024
 message = {'x':0,'y':10}
 count=0
 x1,y1 = 0,0
-def isTouching(player, bullet): 
-    for c in [0, 1]:
-        if bullet.coords[0][0] < player.coords[c][0] < bullet.coords[1][0] and bullet.coords[0][1] < player.coords[c][1] < bullet.coords[1][1]:
-                return True
-    return False
+
 while 1==1:
     MSG = ''
     x, y = win32api.GetCursorPos()
@@ -28,7 +24,7 @@ while 1==1:
         message['y']= y1
         MSG = cPickle.dumps(message)
         s.send(MSG)
-        print 'a='
+        print 'a'
         s.close()
         data = cPickle.loads(s.recv(BUFFER_SIZE))
     time.sleep(0.1)
