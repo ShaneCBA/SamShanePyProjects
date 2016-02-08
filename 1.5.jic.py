@@ -16,11 +16,11 @@ CLIENT_SHARED = 1
 SERVER = 2
 fireCodes = {wx.WXK_LEFT: 1,
              wx.WXK_RIGHT: 0,
-             wx.WXK_UP: 2,
-             wx.WXK_DOWN: 3}
+             wx.WXK_UP: 3,
+             wx.WXK_DOWN: 2}
 fireDirections = [[1, 0], [-1, 0], [0, 1], [0, -1]]
 
-velocityCurve = lambda x: copysign(min((4*x/17)**2, 7),x)
+velocityCurve = lambda x: copysign(min((4*x/13)**2, 7),x)
 filterByAttribute = lambda x, a: filter(lambda z: hasattr(z, x), a)
 def converge(f, t, s):
     if f < t:
@@ -37,9 +37,9 @@ deAccel = partial(converge, t = 0, s = FRICTION)
 class GameObject(object):
     def __init__(self, mode):
         self.mode = mode
-        self.die = True
-    def kill(self):
         self.die = False
+    def kill(self):
+        self.die = True
 
 class PhysicalObject(GameObject):
     def __init__(self, x, y, width, height, collide = True, mode = CLIENT_SHARED):
@@ -85,11 +85,13 @@ class Board(wx.Panel):
         
         self.Bind(wx.EVT_KEY_DOWN , self.keyDown)
         self.Bind(wx.EVT_KEY_UP , self.keyUp)
-        
+        self.rocket = None
         self.player = self.addObject(Moveable(10, 10, 10, 10, 'red'))  
     def onTimer(self, event):
-        for o in filter(lambda x: x.die, self.contents):
-            o.kill()
+        for o in filter(lambda x: x.die == True, self.contents):
+            if o == self.rocket:
+                self.rocket = None
+            self.contents.remove(o)
         self.GetEventHandler().ProcessEvent(wx.PaintEvent( ))
         for k in keys: 
             if keys[k][0]:
@@ -105,7 +107,8 @@ class Board(wx.Panel):
         if event.GetKeyCode() in keys:
             keys[event.GetKeyCode()][0] = True
         if event.GetKeyCode() in fireCodes:
-            self.addObject(Rocket(self.player.coords[0] + self.player.dimensions[0] / 2, self.player.coords[1] + self.player.dimensions[1] / 2, fireCodes[event.GetKeyCode()], CLIENT_SHARED))
+            if self.rocket == None:
+                self.rocket = self.addObject(Rocket(self.player.coords[0] + self.player.dimensions[0] / 2, self.player.coords[1] + self.player.dimensions[1] / 2, fireCodes[event.GetKeyCode()], CLIENT_SHARED))
     def keyUp(self,event):
         if event.GetKeyCode() in keys:
             keys[event.GetKeyCode()][0] = False
@@ -116,12 +119,12 @@ class Board(wx.Panel):
             o.draw(dc)
     def moveObjects(self):
         for o in filterByAttribute("velocity", self.contents):
-            o.move(filterByAttribute("collide", self.contents))
+            o.move(filterByAttribute("collide", self.contents), self.player)
 class Moveable(Drawable):
     def __init__(self, x, y, width, height, color, borderColor = None, borderWidth = 2, mode = CLIENT_SHARED):
         super(Moveable, self).__init__(x, y, width, height, color, [borderColor if borderColor else color, borderWidth], mode)
         self.velocity = [0, 0]
-    def move(self, toCheck):
+    def move(self, toCheck, player):
         self.updateVelocity()
         oldCoords = self.coords[:]
         self.coords = map(sum, zip(self.coords, self.velocity * 2))
@@ -142,14 +145,19 @@ class Obstacle(Drawable):
 
 class Rocket(Moveable):
     def __init__(self, x, y, direction, mode = CLIENT_SHARED):
-        super(Moveable, self).__init__(x, y, 3, 3, 'red', mode = mode)
+        super(Rocket, self).__init__(x, y, 3, 3, 'red', mode = mode)
         self.direction = direction
-    def move(self, toCheck):
-        self.coords = map(sum, zip(self.coords, map(mul, zip(fireDirections[direction], [velocityCurve(4)] * 2))))
+        self.alive = 0
+    def move(self, toCheck, player):
+        self.alive += 1
+        if self.alive > 180:
+            self.kill()
+        self.coords = map(sum, zip(self.coords, map(lambda x: apply(mul, x), zip(fireDirections[self.direction], [8, 8])) * 2))
         if toCheck:
             for o in toCheck:
-                if self.isTouching(o):
+                if o != player and self.isTouching(o):
                     self.kill()
+                    print "k"
                     break
 app = wx.App()
 thingy = Window(None, -1, 'Client', WIDTH, HEIGHT)
