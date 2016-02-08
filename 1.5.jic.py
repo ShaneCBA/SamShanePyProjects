@@ -10,7 +10,7 @@ keys = {83: [False, 0],
         65: [False, 0],
         68: [False, 0]}
 FRICTION = 1
-TICKRATE = 17
+TICKRATE = 1
 CLIENT_LOCAL = 0
 CLIENT_SHARED = 1
 SERVER = 2
@@ -99,6 +99,7 @@ class Board(wx.Panel):
             else:
                 keys[k][1] = 0
         self.moveObjects()
+        self.Refresh()
     def addObject(self, toAdd):
         self.contents.append(toAdd)  
         return self.contents[-1]
@@ -131,10 +132,10 @@ class Moveable(Drawable):
         self.coords = map(sum, zip(self.coords, self.velocity * 2))
         if toCheck:
             for o in toCheck:
-                if self.isTouching(o):
-                    self.velocity = map(lambda x: copysign(1, -x), self.velocity)
+                while self.isTouching(o) and type(o) != Rocket:
+                    self.velocity = map(partial(converge, t=0, s=0.2), self.velocity)
                     self.coords = oldCoords[:]
-                    break
+                    self.coords = map(sum, zip(self.coords, self.velocity * 2))
         return
     def updateVelocity(self):
         self.velocity[0] = velocityCurve(keys[68][1] - keys[65][1]) if keys[68][0] or keys[65][0] else deAccel(self.velocity[0])
