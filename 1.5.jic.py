@@ -1,5 +1,6 @@
 import wx
 import time
+import thread
 from math import copysign
 from operator import mul
 from functools import partial
@@ -10,7 +11,7 @@ keys = {83: [False, 0],
         65: [False, 0],
         68: [False, 0]}
 FRICTION = 1
-TICKRATE = 17
+TICKRATE = 1
 CLIENT_LOCAL = 0
 CLIENT_SHARED = 1
 SERVER = 2
@@ -86,7 +87,7 @@ class Board(wx.Panel):
         self.Bind(wx.EVT_KEY_DOWN , self.keyDown)
         self.Bind(wx.EVT_KEY_UP , self.keyUp)
         self.rocket = None
-        self.player = self.addObject(Moveable(10, 10, 10, 10, 'red'))  
+        self.player = self.addObject(Moveable(0, 0, 30, 30, "#D9756D", "#DDDDDD", 2))  
     def onTimer(self, event):
         for o in filter(lambda x: x.die == True, self.contents):
             if o == self.rocket:
@@ -113,7 +114,8 @@ class Board(wx.Panel):
         if event.GetKeyCode() in keys:
             keys[event.GetKeyCode()][0] = False
     def drawObjects(self, event):
-        dc = wx.PaintDC(self)
+        dc = wx.BufferedPaintDC(self)
+        dc.SetBackground(wx.Brush("#2A4152", wx.SOLID))
         dc.Clear()
         for o in filterByAttribute("color", self.contents):
             o.draw(dc)
@@ -131,10 +133,10 @@ class Moveable(Drawable):
         self.coords = map(sum, zip(self.coords, self.velocity * 2))
         if toCheck:
             for o in toCheck:
-                if self.isTouching(o):
-                    self.velocity = map(lambda x: copysign(1, -x), self.velocity)
+                while self.isTouching(o) and type(o) != Rocket:
+                    self.velocity = map(partial(converge, t=0, s=0.2), self.velocity)
                     self.coords = oldCoords[:]
-                    break
+                    self.coords = map(sum, zip(self.coords, self.velocity * 2))
         return
     def updateVelocity(self):
         self.velocity[0] = velocityCurve(keys[68][1] - keys[65][1]) if keys[68][0] or keys[65][0] else deAccel(self.velocity[0])
@@ -153,17 +155,16 @@ class Rocket(Moveable):
         self.alive += 1
         if self.alive > 180:
             self.kill()
-        self.coords = map(sum, zip(self.coords, map(lambda x: apply(mul, x), zip(fireDirections[self.direction], [8, 8])) * 2))
+        self.coords = map(sum, zip(self.coords, map(lambda x: apply(mul, x), zip(fireDirections[self.direction], [9] * 2)) * 2))
         if toCheck:
             for o in toCheck:
                 if o != player and self.isTouching(o):
                     self.kill()
-                    print "k"
                     break
 app = wx.App()
-thingy = Window(None, -1, 'Client', WIDTH, HEIGHT)
-w,h = thingy.GetSize()
-thingy.statusbar.SetStatusText(str(w))
-thingy.board.addObject(Obstacle(40,(h/2)-30,30,30,"#8F70FF", ["#DDDDDD", 2]))
-thingy.board.addObject(Obstacle(w-40-30,(h/2)-30,30,30,"#26FC14", ["#FFFFFF", 2]))
+appWindow = Window(None, -1, 'Client', WIDTH, HEIGHT)
+w,h = appWindow.GetSize()
+appWindow.statusbar.SetStatusText(str(w))
+appWindow.board.addObject(Obstacle(60,180,20,240,color="#A13437"))
+appWindow.board.addObject(Obstacle(1120,180,20,240,color="#238C6F"))
 app.MainLoop()
