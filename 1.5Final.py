@@ -97,7 +97,7 @@ class Board(wx.Panel):
         
         message={'name':self.player.name,'player':{self.player}}
         message = cPickle.dumps(message)
-        print message
+        #print message
         '''s.send(message)
         s.close()
         sData = cPickle.loads(s.recv(BUFFER_SIZE))'''
@@ -197,17 +197,18 @@ class Rocket(Moveable):
                 if self.isTouching(o):
                     self.kill()
                     break
-app = wx.App(redirect=False)
-appWindow = Window(None, -1, 'Client', WIDTH, HEIGHT)
-
-obstacles=[]
-appWindow.board.player.name = raw_input( "What is your name: " )
-if appWindow.board.player.name == "":
-    appWindow.board.player.name = "Player"
+name = raw_input( "What is your name: " )
+if name == "":
+    name = "Player"
 IP = raw_input( "What the server's ip: " )
 if IP == "":
     IP = "127.0.0.1"
-appWindow.statusbar.SetStatusText(str(WIDTH))
+app = wx.App(redirect=False)
+appWindow = Window(None, -1, 'Client', WIDTH, HEIGHT)
+appWindow.board.player.name = name
+
+obstacles=[]
+appWindow.statusbar.SetStatusText(str(name))
 
 obstacles.append(appWindow.board.addObject(Obstacle(60,180,20,240,color="#A13437")))
 obstacles.append(appWindow.board.addObject(Obstacle(1120,180,20,240,color="#238C6F")))
