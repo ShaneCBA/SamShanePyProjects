@@ -18,12 +18,17 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
         player, playerX, playerY, bulletX, bulletY = self.data.split(",")
         playerCoords = map(int, [playerX, playerY, bulletX, bulletY])
         players += {player: playerCoords}
+        playerHit = {}
         print "{} wrote:".format(self.client_address[0])
         print self.data
         # just send back the same data, but upper-cased
         self.request.sendall(self.data.upper())
     def checkBullets(self):
         for p in players:
+            for q in [player for player in players if item != p]:
+                if p[0] < q[2] < p[0] + 30 and p[1] < q[3] < p[1] + 10:
+                    return p
+        return False
 
 
 if __name__ == "__main__":
