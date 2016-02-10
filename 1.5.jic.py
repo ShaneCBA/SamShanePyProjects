@@ -4,7 +4,7 @@ import thread
 from math import copysign
 from operator import mul
 from functools import partial
-WIDTH, HEIGHT = 1200, 600
+WIDTH, HEIGHT = 1205, 650
 global keys
 keys = {83: [False, 0],
         87: [False, 0],
@@ -60,7 +60,7 @@ class Drawable(PhysicalObject):
         pen = wx.Pen(self.border[0], self.border[1], wx.SOLID)
         dc.SetPen(pen)#.SetJoin(wx.JOIN_MITER))
         dc.SetBrush(wx.Brush(self.color, wx.SOLID))
-        dc.DrawRectangle(self.coords[0]+self.border[1], self.coords[1]+self.border[1], self.dimensions[0], self.dimensions[1])
+        dc.DrawRectangle(self.coords[0]+self.border[1], self.coords[1]+self.border[1], self.dimensions[0]-self.border[1], self.dimensions[1]-self.border[1])
 class Window(wx.Frame):
     def __init__(self, parent, id, title, x, y):
         wx.Frame.__init__(self, parent, id, title, size=(x, y),  style=wx.DEFAULT_FRAME_STYLE ^ wx.RESIZE_BORDER)
@@ -85,7 +85,7 @@ class Board(wx.Panel):
         self.timer.Start(TICKRATE)
         self.Bind(wx.EVT_TIMER, self.onTimer, id=Board.TIMER_ID)
         self.rocket = None
-        self.player = self.addObject(Moveable(0, 0, 30, 30, "#D9756D", "#DDDDDD", 2))
+        self.player = self.addObject(Moveable(20, 20, 30, 30, "#D9756D", "#DDDDDD", 2))
     def onSize(self, event):
         size = self.ClientSize
         self.buffer = wx.EmptyBitmap(*size)
@@ -147,13 +147,13 @@ class Moveable(Drawable):
         self.velocity[0] = velocityCurve(keys[68][1] - keys[65][1]) if keys[68][0] or keys[65][0] else deAccel(self.velocity[0])
         self.velocity[1] = velocityCurve(keys[83][1] - keys[87][1]) if keys[83][0] or keys[87][0] else deAccel(self.velocity[1])
 class Obstacle(Drawable):
-    def __init__(self, x, y, width, height, color, border = None):
+    def __init__(self, x, y, width, height, color, border = ["#EEEEEE",2]):
         super(Obstacle, self).__init__(x, y, width, height, color, border if border else [color, 2])
 
 
 class Rocket(Moveable):
     def __init__(self, x, y, direction, mode = CLIENT_SHARED):
-        super(Rocket, self).__init__(x, y, 3, 3, 'red', mode = mode)
+        super(Rocket, self).__init__(x, y, 10, 10, 'red', mode = mode)
         self.direction = direction
         self.alive = 0
     def move(self, toCheck, player):
@@ -170,6 +170,36 @@ app = wx.App()
 appWindow = Window(None, -1, 'Client', WIDTH, HEIGHT)
 w,h = appWindow.GetSize()
 appWindow.statusbar.SetStatusText(str(w))
-appWindow.board.addObject(Obstacle(60,180,20,240,color="#A13437"))
-appWindow.board.addObject(Obstacle(1120,180,20,240,color="#238C6F"))
+
+appWindow.board.addObject(Obstacle(100,180,20,240,color="#A13437"))
+appWindow.board.addObject(Obstacle(1080,180,20,240,color="#238C6F"))
+
+appWindow.board.addObject(Obstacle(240,80,20,140,color="#A13437"))
+appWindow.board.addObject(Obstacle(240,380,20,140,color="#A13437"))
+appWindow.board.addObject(Obstacle(940,80,20,140,color="#238C6F"))
+appWindow.board.addObject(Obstacle(940,380,20,140,color="#238C6F"))
+
+
+appWindow.board.addObject(Obstacle(240,80,140,20,color="#A13437"))
+appWindow.board.addObject(Obstacle(240,500,140,20,color="#A13437"))
+appWindow.board.addObject(Obstacle(820,80,140,20,color="#238C6F"))
+appWindow.board.addObject(Obstacle(820,500,140,20,color="#238C6F"))
+
+
+appWindow.board.addObject(Obstacle(460,180,140,20,color="#A13437"))
+appWindow.board.addObject(Obstacle(460,400,140,20,color="#A13437"))
+appWindow.board.addObject(Obstacle(600,180,140,20,color="#238C6F"))
+appWindow.board.addObject(Obstacle(600,400,140,20,color="#238C6F"))
+
+
+appWindow.board.addObject(Obstacle(0,-1,20,600-2,color="#A13437", border=["#A13437", 2]))
+appWindow.board.addObject(Obstacle(0,-1,1200/2,20,color="#A13437", border=["#A13437", 2]))
+appWindow.board.addObject(Obstacle(0,580,1200/2,20,color="#A13437", border=["#A13437", 2]))
+
+appWindow.board.addObject(Obstacle(WIDTH - 25, 0,20,600-2,color="#238C6F", border=["#238C6F", 2]))
+appWindow.board.addObject(Obstacle(WIDTH/2-5,-1,1200/2,20,color="#238C6F", border=["#238C6F", 2]))
+appWindow.board.addObject(Obstacle(WIDTH/2-5,580,1200/2,20,color="#238C6F", border=["#238C6F", 2]))
+
+
+
 app.MainLoop()
