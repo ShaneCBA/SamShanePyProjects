@@ -11,7 +11,7 @@ keys = {83: [False, 0],
         65: [False, 0],
         68: [False, 0]}
 FRICTION = 1
-TICKRATE = 1
+TICKRATE = 10
 CLIENT_LOCAL = 0
 CLIENT_SHARED = 1
 SERVER = 2
@@ -75,31 +75,34 @@ class Board(wx.Panel):
     TIMER_ID = 42
     def __init__(self, parent):
         wx.Panel.__init__(self, parent, style=wx.WANTS_CHARS)
-        
+        self.contents = []
+        self.Bind(wx.EVT_PAINT, self.drawObjects)
+        self.Bind(wx.EVT_SIZE, self.onSize)
+        self.Bind(wx.EVT_KEY_DOWN , self.keyDown)
+        self.Bind(wx.EVT_KEY_UP , self.keyUp)
+        self.onSize(None)
         self.timer = wx.Timer(self,  Board.TIMER_ID)
         self.timer.Start(TICKRATE)
         self.Bind(wx.EVT_TIMER, self.onTimer, id=Board.TIMER_ID)
-        
-       # wx.Panel.__init__(self, parent, style=wx.WANTS_CHARS)
-        self.contents = []
-        self.Bind(wx.EVT_PAINT, self.drawObjects)
-        
-        self.Bind(wx.EVT_KEY_DOWN , self.keyDown)
-        self.Bind(wx.EVT_KEY_UP , self.keyUp)
         self.rocket = None
-        self.player = self.addObject(Moveable(0, 0, 30, 30, "#D9756D", "#DDDDDD", 2))  
+        self.player = self.addObject(Moveable(0, 0, 30, 30, "#D9756D", "#DDDDDD", 2))
+    def onSize(self, event):
+        size = self.ClientSize
+        self.buffer = wx.EmptyBitmap(*size)
     def onTimer(self, event):
         for o in filter(lambda x: x.die == True, self.contents):
             if o == self.rocket:
                 self.rocket = None
             self.contents.remove(o)
-        self.GetEventHandler().ProcessEvent(wx.PaintEvent( ))
+
         for k in keys: 
             if keys[k][0]:
                 keys[k][1] += 1
             else:
                 keys[k][1] = 0
         self.moveObjects()
+        self.Refresh(eraseBackground=False)
+        self.Update()
     def addObject(self, toAdd):
         self.contents.append(toAdd)  
         return self.contents[-1]
@@ -114,12 +117,14 @@ class Board(wx.Panel):
         if event.GetKeyCode() in keys:
             keys[event.GetKeyCode()][0] = False
     def drawObjects(self, event):
-        dc = wx.BufferedPaintDC(self)
+        dc = wx.MemoryDC()
+        dc.SelectObject(self.buffer)
         dc.SetBackground(wx.Brush("#2A4152", wx.SOLID))
         dc.Clear()
         for o in filterByAttribute("color", self.contents):
             o.draw(dc)
-        dc.Refresh()
+        dc = wx.PaintDC(self)
+        dc.DrawBitmap(self.buffer, 0, 0)
     def moveObjects(self):
         for o in filterByAttribute("velocity", self.contents):
             o.move(filterByAttribute("collide", self.contents), self.player)
